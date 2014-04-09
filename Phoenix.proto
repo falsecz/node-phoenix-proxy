@@ -1,0 +1,42 @@
+option java_package = "com.socialbakers.phoenix.proxy";
+option java_outer_classname = "PhoenixProxyProtos";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message QueryRequest {
+	required int32 call_id = 1;
+	required string query = 2;
+}
+
+message ColumnMapping {
+	enum Type {
+		INTEGER = 1;
+		VARCHAR = 2;
+		BINARY = 3;
+
+	}
+	required string name = 1;
+	required Type type = 2;
+}
+
+message QueryException {
+	required string message = 1;
+}
+
+message Row {
+	repeated bytes bytes = 1;
+}
+
+message QueryResponse {
+	required int32 call_id = 1;
+	repeated ColumnMapping mapping = 2;
+	repeated Row rows = 3;
+	optional QueryException exception = 4;
+
+}
+
+
+service PhoenixProxy {
+	rpc query (QueryRequest) returns (QueryResponse);
+}

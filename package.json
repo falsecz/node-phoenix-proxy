@@ -1,12 +1,9 @@
 {
-  "name": "node-phoenix-proxy",
-  "version": "0.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
+  "name": "phoenix-proxy",
+  "version": "0.0.1",
+  "description": "Phoenix hbase proxy server client",
+  "main": "index.coffee",
+  "author": "bender@false.cz",
   "license": "ISC",
   "dependencies": {
     "protobufjs": "~2.0.5",

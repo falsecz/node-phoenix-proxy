@@ -31,7 +31,7 @@ proxy = (host, port) ->
 
 	connection = null
 	rc = reconnect (socket) ->
-		console.log "Connected"
+		# console.log "Connected"
 		connection = socket
 		@emit 'connected', socket
 
@@ -140,7 +140,8 @@ proxy = (host, port) ->
 	rc.connect port, host
 	rc.on 'disconnect', (err) ->
 		return console.log 'Disconnected', err.message if err
-		console.log 'Disconnected', err?.message
+		console.log 'Disconnected'
+
 		callId = 1
 		for id, call of calls
 			call.callback new Error "Connection closed"
@@ -159,12 +160,12 @@ proxy = (host, port) ->
 		c = getConnection (err, c) ->
 			return done err if err
 
-			console.log 'mam conn'
+			# console.log 'mam conn'
 
 
 
 			b = req.toBuffer()
-			console.log "Zapisuju " +  b.length
+			# console.log "Zapisuju " +  b.length
 
 			b1 = new Buffer 4
 			b1.writeInt32BE b.length, 0

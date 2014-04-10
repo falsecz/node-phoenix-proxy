@@ -77,8 +77,8 @@ proxy = (host, port) ->
 		buffer = new Buffer 0
 
 		processData = (data) ->
-			console.log data
-			console.log data.toString()
+			# console.log data
+			# console.log data.toString()
 			data = new Buffer(0) unless data
 
 			buffer = Buffer.concat [buffer, data]
@@ -93,7 +93,7 @@ proxy = (host, port) ->
 			return if awaitBytes and awaitBytes > buffer.length
 
 			processMessage buffer.slice 0, awaitBytes
-			buffer = @buffer.slice awaitBytes
+			buffer = buffer.slice awaitBytes
 			awaitBytes = 0
 
 			processData() if buffer.length > 0
@@ -103,7 +103,9 @@ proxy = (host, port) ->
 		socket.on 'data', processData
 
 	processMessage  = (msg) ->
-		console.log msg
+		o = builder.result.QueryResponse.decode msg
+		console.log o.call_id
+		console.log o
 
 	rc.connect port, host
 	rc.on 'disconnect', (err) ->

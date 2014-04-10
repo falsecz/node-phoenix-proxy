@@ -7,6 +7,8 @@
   "license": "ISC",
   "dependencies": {
     "protobufjs": "~2.0.5",
-    "reconnect-net": "0.0.0"
+    "reconnect-net": "0.0.0",
+    "cli-table": "~0.3.0",
+    "moment": "~2.5.1"
   }
 }

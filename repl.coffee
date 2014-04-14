@@ -22,9 +22,9 @@ sendQuery = (q, done) ->
 		done()
 
 local = repl.start
-  prompt: "phoenix> "
-  input: process.stdin
-  output: process.stdout
+	prompt: "phoenix> "
+	input: process.stdin
+	output: process.stdout
 	eval: evaluate
 
 local.eval = evaluate

@@ -10,5 +10,8 @@
     "reconnect-net": "0.0.0",
     "cli-table": "~0.3.0",
     "moment": "~2.5.1"
+  },
+  "devDependencies": {
+    "async": "^0.7.0"
   }
 }

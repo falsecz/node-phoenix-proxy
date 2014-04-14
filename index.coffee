@@ -1,6 +1,7 @@
 moment = require 'moment'
 reconnect = require 'reconnect-net'
 ProtoBuf = require("protobufjs")
+{EventEmitter} = require 'events'
 ByteBuffer = require 'protobufjs/node_modules/bytebuffer'
 
 builder = ProtoBuf.loadProtoFile("#{__dirname}/Phoenix.proto")
@@ -24,50 +25,89 @@ class PhoenixProxy extends Service
 		super 'PhoenixProxy', impl
 
 
-proxy = (host, port) ->
-	callId = 1
-	calls = {}
+class Proxy extends EventEmitter
+	constructor: (host, port) ->
+		@_calls = {}
+		@_callId = 1
+		@_awaitBytes = 0
+		@_connection = null
+		@_buffer = new Buffer 0
+
+		@_rc = reconnect (socket) =>
+			# console.log "Connected"
+			@_connection = socket
+			@_rc.emit 'connected', socket
+
+			socket.on 'data', @_processData
+
+		@_rc.connect port, host
+		@_rc.on 'disconnect', (err) =>
+			return console.log 'Disconnected', err.message if err
+			console.log 'Disconnected'
+
+			for id, call of @_calls
+				call.callback new Error "Connection closed"
+
+			@_calls = {}
+			@_callId = 1
+
+		@_pp = new PhoenixProxy (method, req, done) =>
+			c = @_getConnection (err, c) ->
+				return done err if err
+
+				#console.log 'mam conn'
+				b = req.toBuffer()
+				#console.log "Zapisuju " +  b.length
+
+				b1 = new Buffer 4
+				b1.writeInt32BE b.length, 0
+				c.write b1
+				c.write b
 
 
-	connection = null
-	rc = reconnect (socket) ->
-		# console.log "Connected"
-		connection = socket
-		@emit 'connected', socket
-
-		awaitBytes = 0
-		buffer = new Buffer 0
-
-		processData = (data) ->
-			# console.log data
-			data = new Buffer(0) unless data
-
-			buffer = Buffer.concat [buffer, data]
-			return if awaitBytes is 0 and buffer.length < 4
-
-			unless awaitBytes
-				awaitBytes = buffer.readUInt32BE 0
-				buffer = buffer.slice 4
-				# console.log "ocekavam", awaitBytes
-
-			return if awaitBytes and awaitBytes > buffer.length
-
-			processMessage buffer.slice 0, awaitBytes
-			buffer = buffer.slice awaitBytes
-			awaitBytes = 0
-
-			processData() if buffer.length > 0
+	query: (q, opts, done) =>
+		@_baseQuery RequestType.QUERY, q, opts, done
 
 
+	update: (q, opts, done) =>
+		@_baseQuery RequestType.UPDATE, q, opts, done
 
-		socket.on 'data', processData
 
-	processMessage  = (msg) ->
+	_getConnection: (done) =>
+		if @_rc.connected
+			return done null, @_connection
+
+		@_rc.once 'connected', () =>
+			done null, @_connection
+
+
+	_processData: (data) =>
+		#console.log data
+		data = new Buffer(0) unless data
+
+		@_buffer = Buffer.concat [@_buffer, data]
+		return if @_awaitBytes is 0 and @_buffer.length < 4
+
+		unless @_awaitBytes
+			@_awaitBytes = @_buffer.readUInt32BE 0
+			@_buffer = @_buffer.slice 4
+			#console.log "ocekavam", @_awaitBytes
+
+		return if @_awaitBytes and @_awaitBytes > @_buffer.length
+
+		@_processMessage @_buffer.slice 0, @_awaitBytes
+		@_buffer = @_buffer.slice @_awaitBytes
+		@_awaitBytes = 0
+
+		@_processData() if @_buffer.length > 0
+
+
+	_processMessage: (msg) =>
 		# console.log msg.length, msg
 		# console.log msg.toString()
 
 		o = builder.result.QueryResponse.decode msg
-		call = calls[o.call_id]
+		call = @_calls[o.call_id]
 		return console.log "Call " + o.call_id unless call
 		return call.callback o.exception if o.exception
 
@@ -131,76 +171,32 @@ proxy = (host, port) ->
 				r[mappingKey idx] = decodeMapping idx, value
 			r
 
-		return call.callback null, rows
+		call.callback null, rows
+		# call.callback o.exception if o.exception
 
 
-		# return call.callback o.exception if o.exception
-
-
-	rc.connect port, host
-	rc.on 'disconnect', (err) ->
-		return console.log 'Disconnected', err.message if err
-		console.log 'Disconnected'
-
-		callId = 1
-		for id, call of calls
-			call.callback new Error "Connection closed"
-		calls = {}
-
-
-	getConnection = (done) ->
-		if rc.connected
-			return done null, connection
-
-		rc.once 'connected', () ->
-			done null, connection
-
-
-	pp = new PhoenixProxy (method, req, done) ->
-		c = getConnection (err, c) ->
-			return done err if err
-
-			# console.log 'mam conn'
-
-
-
-			b = req.toBuffer()
-			# console.log "Zapisuju " +  b.length
-
-			b1 = new Buffer 4
-			b1.writeInt32BE b.length, 0
-			c.write b1
-			c.write b
-
-
-	baseQuery = (type, q, opts, done) ->
+	_baseQuery: (type, q, opts, done) =>
 		unless done
 			done = opts
 			opts = {}
+
 		opts.timeout ?= 30
 
-		cid = callId++
-		pp.query
+		cid = @_callId++
+		@_pp.query
 			call_id: cid
 			query: q
 			type: type
 		, () ->
 			console.log arguments
 
-		calls[cid] = {}
-		calls[cid].callback = done
-
-	query: (q, opts, done) ->
-		baseQuery RequestType.QUERY, q, opts, done
-	update: (q, opts, done) ->
-		baseQuery RequestType.UPDATE, q, opts, done
-
-
+		@_calls[cid] = {}
+		@_calls[cid].callback = done
 
 
 module.exports = (url) ->
 	murl = require 'url'
 	{hostname, port} =  murl.parse url
-	proxy hostname, port
+	new Proxy hostname, port
 
 

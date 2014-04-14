@@ -108,58 +108,83 @@ class Proxy extends EventEmitter
 
 		o = builder.result.QueryResponse.decode msg
 		call = @_calls[o.call_id]
+
 		return console.log "Call " + o.call_id unless call
 		return call.callback o.exception if o.exception
 
-		# console.log "raw", o
 		decodeMapping = (index, value) ->
+			b = value.toBuffer()
 			type = o.mapping[index].type
-			return null unless value.toBuffer().length
+			return null unless b.length
+
+			if type is ColumnMapping.Type.INTEGER
+				return b.readInt32BE(0)
 
 			if type is ColumnMapping.Type.VARCHAR
-				return value.toBuffer().toString()
+				return b.toString()
+
+			if type is ColumnMapping.Type.BINARY
+				return b
+
+			if type is ColumnMapping.Type.DOUBLE
+				x = ByteBuffer.wrap(b).readDouble 0
+				return x.toString()
+
+			if type is ColumnMapping.Type.FLOAT
+				x = ByteBuffer.wrap(b).readFloat 0
+				return x.toString()
 
 			if type is ColumnMapping.Type.BIGINT
-				x = value.toBuffer()
+				x = b
 
-				# return value.readInt64(0).toString()
 				high = x.readInt32BE 4
 				low = x.readInt32BE 0
 				x = ByteBuffer.Long.fromBits high, low, yes
-				# console.log x.toString()
-				# process.exit 1
 				return x.toString()
 
 			if type is ColumnMapping.Type.BOOLEAN
-				return value.toBuffer().readInt8(0) is 1
+				return b.readInt8(0) is 1
 
-			if type is ColumnMapping.Type.TINYINT
-				# return value.toBuffer()
-				return value.toBuffer().readInt8(0)
-
-			if type is ColumnMapping.Type.DATE
-				# console.log value.toBuffer()
-				# console.log value.readUint64(0).toString()
-				# console.log value.readInt64().toString()
-				x = value.toBuffer()
-				# x[0] = 128
-				# console.log x
+			if type is ColumnMapping.Type.TIMESTAMP
+				x = b
 				high = x.readInt32BE 4
 				low = x.readInt32BE 0
 				x = ByteBuffer.Long.fromBits high, low, yes
-				# console.log x.toString()
-				# process.exit 1
-				# return x.toString()
 
 				return moment.utc(parseInt x).toDate()
-				# return value.readInt64().toString()
 
+			if type is ColumnMapping.Type.DATE
+				x = b
+				high = x.readInt32BE 4
+				low = x.readInt32BE 0
+				x = ByteBuffer.Long.fromBits high, low, yes
 
-			if type is ColumnMapping.Type.INTEGER
-				return value.toBuffer()
-				return value.readUint32()
+				return moment.utc(parseInt x).format('YYYY-MM-DD')
 
-			# o.mapping[index]
+			if type is ColumnMapping.Type.TINYINT
+				return b.readInt8(0)
+
+			if type is ColumnMapping.Type.SMALLINT
+				return b.readInt16BE(0)
+
+			if type is ColumnMapping.Type.DECIMAL
+				x = ByteBuffer.wrap(b).readDouble 0
+				return x.toString()
+
+			if type is ColumnMapping.Type.TIME
+				x = b
+				high = x.readInt32BE 4
+				low = x.readInt32BE 0
+				x = ByteBuffer.Long.fromBits high, low, yes
+
+				return moment.utc(parseInt x).format('HH:mm:ss')
+
+			if type is ColumnMapping.Type.CHAR
+				return b.toString()
+
+			if type is ColumnMapping.Type.VARBINARY
+				return b
+
 			value
 
 		mappingKey = (index) ->
@@ -172,7 +197,6 @@ class Proxy extends EventEmitter
 			r
 
 		call.callback null, rows
-		# call.callback o.exception if o.exception
 
 
 	_baseQuery: (type, q, opts, done) =>
@@ -180,7 +204,7 @@ class Proxy extends EventEmitter
 			done = opts
 			opts = {}
 
-		opts.timeout ?= 30
+		opts.timeout ?= 30000
 
 		cid = @_callId++
 		@_pp.query
@@ -191,7 +215,16 @@ class Proxy extends EventEmitter
 			console.log arguments
 
 		@_calls[cid] = {}
-		@_calls[cid].callback = done
+
+		@_calls[cid].callback = () =>
+			clearTimeout @_calls[cid].timeout
+			delete @_calls[cid]
+			done.apply done, arguments
+
+		@_calls[cid].timeout = setTimeout () =>
+			delete @_calls[cid]
+			done new Error "Connection timed out"
+		, opts.timeout
 
 
 module.exports = (url) ->

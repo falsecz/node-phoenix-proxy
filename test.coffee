@@ -1,12 +1,17 @@
 pp = require './'
-# phoenix = pp 'phoenix://localhost:1234'
-# phoenix = pp 'phoenix://10.11.1.132:8989'
-# phoenix = pp 'phoenix://127.0.0.1:1234'
-#phoenix = pp 'phoenix://app7.us-w2.aws.ccl:5216'
-phoenix = pp 'phoenix://10.11.1.132:8989'
+phoenix = pp 'phoenix://app7.us-w2.aws.ccl:5216'
+#phoenix = pp 'phoenix://10.11.1.132:8989'
 async = require 'async'
 
-async.each [0..100], (i, done) ->
+
+
+phoenix.query "select * from phoenix_type_test", (err, rows) ->
+	console.log arguments
+	process.exit 0
+return
+
+
+async.each [0..1000], (i, done) ->
 	console.log i
 	phoenix.query "select * from gplus_posts_v1 limit 1", (err, rows) ->
 		console.log "done #{i}", err if err
@@ -14,6 +19,8 @@ async.each [0..100], (i, done) ->
 		console.log "done #{i}", rows.length
 		done()
 , (err) ->
+	console.log err
+	process.exit 0
 return
 
 
@@ -28,3 +35,57 @@ phoenix.update """upsert into gplus_posts_v1 (page_id, created_time, is_admin_po
 		console.log i, JSON.stringify(row) for row, i in rows
 		console.log "took ", new Date - d
 		process.exit 0
+
+
+
+###
+q = """
+CREATE TABLE phoenix_type_test(
+	c1 INTEGER not null,
+	c2 VARCHAR,
+	c3 BINARY(10),
+	c4 DOUBLE,
+	c5 FLOAT,
+	c6 BIGINT,
+	c7 BOOLEAN,
+	c8 TIMESTAMP,
+	c10 DATE,
+	c11 TINYINT,
+	c12 SMALLINT,
+	c13 DECIMAL,
+	c14 TIME,
+	c15 CHAR(5),
+	c16 VARBINARY,
+CONSTRAINT PK PRIMARY KEY (c1))
+"""
+phoenix.update q, (err, rows) ->
+	console.log arguments
+	process.exit 0
+return
+
+q = """
+upsert into phoenix_type_test (c1, c2, c3, c4, c5, c6,c7, c8, c10, c11, c12, c13, c14, c15, c16) values (
+	1,
+	'varchar',
+	HEX_TO_BYTES('12'),
+	1.1,
+	1.2,
+	2,
+	true,
+	TO_DATE('2014-04-10 11:11:11'),
+	TO_DATE('2014-04-11', 'yyyy-MM-dd'),
+	3,
+	4,
+	12345.67,
+	TO_DATE('10:10:10', 'HH:mm:ss'),
+	'char',
+	HEX_TO_BYTES('00')
+)
+"""
+phoenix.update q, (err, rows) ->
+	console.log arguments
+	process.exit 0
+return
+###
+
+

@@ -159,7 +159,7 @@ class Proxy extends EventEmitter
 				low = x.readInt32BE 0
 				x = ByteBuffer.Long.fromBits high, low, yes
 
-				return moment.utc(parseInt x).format('YYYY-MM-DD')
+				return moment.utc(parseInt x)
 
 			if type is ColumnMapping.Type.TINYINT
 				return b.readInt8(0)

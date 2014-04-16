@@ -1,14 +1,16 @@
-moment = require 'moment'
 reconnect = require 'reconnect-net'
 ProtoBuf = require("protobufjs")
 {EventEmitter} = require 'events'
 ByteBuffer = require 'protobufjs/node_modules/bytebuffer'
+dataConvert = require './data-convert'
 
 builder = ProtoBuf.loadProtoFile("#{__dirname}/Phoenix.proto")
 
 ColumnMapping = builder.result.ColumnMapping
-RequestType = builder.result.QueryRequest.Type
-# console.log ColumnMapping
+RequestType = builder.result.QueryRequest.Query.Type
+DataType = builder.result.DataType
+
+
 class Service
 	constructor: (service, impl) ->
 		r = builder.lookup service
@@ -42,11 +44,14 @@ class Proxy extends EventEmitter
 
 		@_rc.connect port, host
 		@_rc.on 'disconnect', (err) =>
-			return console.log 'Disconnected', err.message if err
+			if err
+				err = "Disconnected #{host}:#{port} #{err}"
+				console.log err
+				return @.emit 'error', err
+
 			console.log 'Disconnected'
 
-			for id, call of @_calls
-				call.callback new Error "Connection closed"
+			call.callback new Error "Connection closed" for id, call of @_calls
 
 			@_calls = {}
 			@_callId = 1
@@ -55,9 +60,7 @@ class Proxy extends EventEmitter
 			c = @_getConnection (err, c) ->
 				return done err if err
 
-				#console.log 'mam conn'
 				b = req.toBuffer()
-				#console.log "Zapisuju " +  b.length
 
 				b1 = new Buffer 4
 				b1.writeInt32BE b.length, 0
@@ -65,12 +68,12 @@ class Proxy extends EventEmitter
 				c.write b
 
 
-	query: (q, opts, done) =>
-		@_baseQuery RequestType.QUERY, q, opts, done
+	query: (q, params, opts, done) =>
+		@_baseQuery RequestType.QUERY, q, params, opts, done
 
 
-	update: (q, opts, done) =>
-		@_baseQuery RequestType.UPDATE, q, opts, done
+	update: (q, params, opts, done) =>
+		@_baseQuery RequestType.UPDATE, q, params, opts, done
 
 
 	_getConnection: (done) =>
@@ -82,7 +85,6 @@ class Proxy extends EventEmitter
 
 
 	_processData: (data) =>
-		#console.log data
 		data = new Buffer(0) unless data
 
 		@_buffer = Buffer.concat [@_buffer, data]
@@ -91,7 +93,6 @@ class Proxy extends EventEmitter
 		unless @_awaitBytes
 			@_awaitBytes = @_buffer.readUInt32BE 0
 			@_buffer = @_buffer.slice 4
-			#console.log "ocekavam", @_awaitBytes
 
 		return if @_awaitBytes and @_awaitBytes > @_buffer.length
 
@@ -103,115 +104,64 @@ class Proxy extends EventEmitter
 
 
 	_processMessage: (msg) =>
-		# console.log msg.length, msg
-		# console.log msg.toString()
-
 		o = builder.result.QueryResponse.decode msg
 		call = @_calls[o.call_id]
 
 		return console.log "Call " + o.call_id unless call
 		return call.callback o.exception if o.exception
 
-		decodeMapping = (index, value) ->
+		decodeMapping = (index, value, mapping) ->
 			b = value.toBuffer()
-			type = o.mapping[index].type
+			t = mapping[index].type
 			return null unless b.length
-
-			if type is ColumnMapping.Type.INTEGER
-				return b.readInt32BE(0)
-
-			if type is ColumnMapping.Type.VARCHAR
-				return b.toString()
-
-			if type is ColumnMapping.Type.BINARY
-				return b
-
-			if type is ColumnMapping.Type.DOUBLE
-				x = ByteBuffer.wrap(b).readDouble 0
-				return x.toString()
-
-			if type is ColumnMapping.Type.FLOAT
-				x = ByteBuffer.wrap(b).readFloat 0
-				return x.toString()
-
-			if type is ColumnMapping.Type.BIGINT
-				x = b
-
-				high = x.readInt32BE 4
-				low = x.readInt32BE 0
-				x = ByteBuffer.Long.fromBits high, low, yes
-				return x.toString()
-
-			if type is ColumnMapping.Type.BOOLEAN
-				return b.readInt8(0) is 1
-
-			if type is ColumnMapping.Type.TIMESTAMP
-				x = b
-				high = x.readInt32BE 4
-				low = x.readInt32BE 0
-				x = ByteBuffer.Long.fromBits high, low, yes
-
-				return moment.utc(parseInt x).toDate()
-
-			if type is ColumnMapping.Type.DATE
-				x = b
-				high = x.readInt32BE 4
-				low = x.readInt32BE 0
-				x = ByteBuffer.Long.fromBits high, low, yes
-
-				return moment.utc(parseInt x).format('YYYY-MM-DD')
-
-			if type is ColumnMapping.Type.TINYINT
-				return b.readInt8(0)
-
-			if type is ColumnMapping.Type.SMALLINT
-				return b.readInt16BE(0)
-
-			if type is ColumnMapping.Type.DECIMAL
-				x = ByteBuffer.wrap(b).readDouble 0
-				return x.toString()
-
-			if type is ColumnMapping.Type.TIME
-				x = b
-				high = x.readInt32BE 4
-				low = x.readInt32BE 0
-				x = ByteBuffer.Long.fromBits high, low, yes
-
-				return moment.utc(parseInt x).format('HH:mm:ss')
-
-			if type is ColumnMapping.Type.CHAR
-				return b.toString()
-
-			if type is ColumnMapping.Type.VARBINARY
-				return b
-
+			return dataConvert[t].decode b if dataConvert[t]
 			value
 
-		mappingKey = (index) ->
-			o.mapping[index].name.toLowerCase()
+		mappingKey = (index, mapping) ->
+			mapping[index].name.toLowerCase()
 
-		rows = o.rows.map (row) ->
-			r = {}
-			for value, idx in row.bytes
-				r[mappingKey idx] = decodeMapping idx, value
-			r
+		results = o.results.map (result) ->
+			rows = result.rows.map (row) ->
+				r = {}
+				for value, idx in row.bytes
+					r[mappingKey idx, result.mapping] = decodeMapping idx, value, result.mapping
+				r
+			rows
 
-		call.callback null, rows
+		call.callback null, results
 
 
-	_baseQuery: (type, q, opts, done) =>
-		unless done
+	_baseQuery: (type, q, params, opts, done) =>
+		if typeof params is 'function'
+			done = params
+			opts = {}
+			params = []
+		else if typeof opts is 'function'
 			done = opts
 			opts = {}
 
 		opts.timeout ?= 30000
 
 		cid = @_callId++
-		@_pp.query
+
+		req =
 			call_id: cid
-			query: q
+			queries: []
+
+		pbParams = null
+		if params.length
+			pbParams = params.map (param) ->
+				t = Object.keys(param)[0].toUpperCase()
+
+				type: DataType[t]
+				bytes: dataConvert[t].encode param[Object.keys(param)[0]]
+
+		req.queries.push
+			sql: q
 			type: type
-		, () ->
+			params: pbParams
+
+		@_pp.query req, () ->
 			console.log arguments
 
 		@_calls[cid] = {}

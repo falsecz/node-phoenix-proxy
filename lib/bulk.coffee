@@ -1,6 +1,6 @@
-ProtoBuf = require("protobufjs")
-builder = ProtoBuf.loadProtoFile("#{__dirname}/Phoenix.proto")
-RequestType = builder.result.QueryRequest.Query.Type
+protocol = require './protocol'
+
+RequestType = protocol.QueryRequest.Query.Type
 
 
 module.exports = class Bulk

@@ -1,11 +1,6 @@
 moment = require 'moment'
-ByteBuffer = require 'protobufjs/node_modules/bytebuffer'
-ProtoBuf = require("protobufjs")
-
-builder = ProtoBuf.loadProtoFile("#{__dirname}/Phoenix.proto")
-
-DataType = builder.result.DataType
-
+ByteBuffer = require 'bytebuffer'
+{DataType} = require './protocol'
 
 dataConvert =
 	INTEGER:

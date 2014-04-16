@@ -1,21 +1,17 @@
-
 reconnect = require 'reconnect-net'
-ProtoBuf = require("protobufjs")
 {EventEmitter} = require 'events'
 ByteBuffer = require 'protobufjs/node_modules/bytebuffer'
-dataConvert = require './data-convert'
-Bulk = require './bulk'
+dataConvert = require './lib/data-convert'
+Bulk = require './lib/bulk'
+protocol = require './lib/protocol'
 
-builder = ProtoBuf.loadProtoFile("#{__dirname}/Phoenix.proto")
-
-ColumnMapping = builder.result.ColumnMapping
-RequestType = builder.result.QueryRequest.Query.Type
-DataType = builder.result.DataType
-
+RequestType = protocol.QueryRequest.Query.Type
+DataType = protocol.DataType
+QueryResponse = protocol.QueryResponse
 
 class Service
 	constructor: (service, impl) ->
-		r = builder.lookup service
+		r = protocol.lookup service
 		client = new r.clazz impl
 		r.children.forEach (child) =>
 			@[child.name] = (req, done) ->
@@ -76,6 +72,18 @@ class Proxy extends EventEmitter
 	query: (q, params, opts, done) =>
 		@_createQuery RequestType.QUERY, q, params, opts, done
 
+	queryOne: (q, params, opts, done) =>
+		if typeof params is 'function'
+			done = params
+			opts = {}
+			params = []
+		else if typeof opts is 'function'
+			done = opts
+			opts = {}
+
+
+		@_createQuery RequestType.QUERY, q, params, opts, (err, rows) ->
+			done? err, rows?[0]
 
 	update: (q, params, opts, done) =>
 		@_createQuery RequestType.UPDATE, q, params, opts, done
@@ -126,7 +134,7 @@ class Proxy extends EventEmitter
 
 
 	_processMessage: (msg) =>
-		o = builder.result.QueryResponse.decode msg
+		o = QueryResponse.decode msg
 		call = @_calls[o.call_id]
 
 		return console.log "Call " + o.call_id unless call

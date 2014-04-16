@@ -6,6 +6,11 @@ async = require 'async'
 phoenix.on 'error', (err) ->
 	console.log err.message
 
+phoenix.query "select c1, c15 from phoenix_type_test where c1 = ?", [integer: 1], () ->
+	console.log arguments
+
+return
+
 ###
 # char doesn't behave like binary does (binary adds x20 to the full length, char doesn't)
 ###

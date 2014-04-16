@@ -1,19 +1,28 @@
 pp = require './'
-phoenix = pp 'phoenix://app7.us-w2.aws.ccl:5216'
+#phoenix = pp 'phoenix://app7.us-w2.aws.ccl:5216'
 #phoenix = pp 'phoenix://10.11.1.132:8989'
+phoenix = pp 'phoenix://10.11.1.101:9898'
 async = require 'async'
+phoenix.on 'error', (err) ->
+	console.log err.message
 
+###
+# char doesn't behave like binary does (binary adds x20 to the full length, char doesn't)
+###
 
-
-phoenix.query "select * from phoenix_type_test", (err, rows) ->
-	console.log arguments
+b = phoenix.bulk()
+b.query "select c1, c15 from phoenix_type_test where c1 = ?", [integer: 1]
+b.query "select c1, c15 from phoenix_type_test where c1 = ?", [integer: 2]
+b.query "select c1, c15 from phoenix_type_test where c15 = ?", [char: 'c']
+b.execute (err, rows) ->
+	console.log rows
 	process.exit 0
 return
 
 
-async.each [0..1000], (i, done) ->
+async.each [0..5], (i, done) ->
 	console.log i
-	phoenix.query "select * from gplus_posts_v1 limit 1", (err, rows) ->
+	phoenix.query "select * from phoenix_type_test", (err, rows) ->
 		console.log "done #{i}", err if err
 		return done err if err
 		console.log "done #{i}", rows.length

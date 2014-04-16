@@ -1,6 +1,6 @@
 {
   "name": "phoenix-proxy",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "Phoenix hbase proxy server client",
   "main": "index.coffee",
   "author": "bender@false.cz",

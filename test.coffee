@@ -9,6 +9,15 @@ async = require 'async'
 # char doesn't behave like binary does (binary adds x20 to the full length, char doesn't)
 ###
 
+b = phoenix.bulk()
+b.query "select c1, c15 from phoenix_type_test where c1 = ?", [integer: 1]
+b.query "select c1, c15 from phoenix_type_test where c1 = ?", [integer: 2]
+b.query "select c1, c15 from phoenix_type_test where c15 = ?", [char: 'c']
+b.execute (err, rows) ->
+	console.log rows
+	process.exit 0
+return
+
 
 async.each [0..5], (i, done) ->
 	console.log i

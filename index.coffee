@@ -3,6 +3,7 @@ ProtoBuf = require("protobufjs")
 {EventEmitter} = require 'events'
 ByteBuffer = require 'protobufjs/node_modules/bytebuffer'
 dataConvert = require './data-convert'
+Bulk = require './bulk'
 
 builder = ProtoBuf.loadProtoFile("#{__dirname}/Phoenix.proto")
 
@@ -68,12 +69,33 @@ class Proxy extends EventEmitter
 				c.write b
 
 
+	bulk: () =>
+		new Bulk @
+
+
 	query: (q, params, opts, done) =>
-		@_baseQuery RequestType.QUERY, q, params, opts, done
+		@_createQuery RequestType.QUERY, q, params, opts, done
 
 
 	update: (q, params, opts, done) =>
-		@_baseQuery RequestType.UPDATE, q, params, opts, done
+		@_createQuery RequestType.UPDATE, q, params, opts, done
+
+
+	_createQuery: (type, q, params, opts, done) =>
+		if typeof params is 'function'
+			done = params
+			opts = {}
+			params = []
+		else if typeof opts is 'function'
+			done = opts
+			opts = {}
+
+		query = [
+			sql: q
+			type: type
+			params: params
+		]
+		@_baseQuery query, opts, done
 
 
 	_getConnection: (done) =>
@@ -131,15 +153,7 @@ class Proxy extends EventEmitter
 		call.callback null, results
 
 
-	_baseQuery: (type, q, params, opts, done) =>
-		if typeof params is 'function'
-			done = params
-			opts = {}
-			params = []
-		else if typeof opts is 'function'
-			done = opts
-			opts = {}
-
+	_baseQuery: (queries, opts, done) =>
 		opts.timeout ?= 30000
 
 		cid = @_callId++
@@ -148,27 +162,29 @@ class Proxy extends EventEmitter
 			call_id: cid
 			queries: []
 
-		pbParams = null
-		if params.length
-			pbParams = params.map (param) ->
-				t = Object.keys(param)[0].toUpperCase()
+		for query in queries
+			pbParams = null
+			if query.params.length
+				pbParams = query.params.map (param) ->
+					t = Object.keys(param)[0].toUpperCase()
 
-				type: DataType[t]
-				bytes: dataConvert[t].encode param[Object.keys(param)[0]]
+					type: DataType[t]
+					bytes: dataConvert[t].encode param[Object.keys(param)[0]]
 
-		req.queries.push
-			sql: q
-			type: type
-			params: pbParams
+			req.queries.push
+				sql: query.sql
+				type: query.type
+				params: pbParams
 
 		@_pp.query req, () ->
 			console.log arguments
 
 		@_calls[cid] = {}
 
-		@_calls[cid].callback = () =>
+		@_calls[cid].callback = (err, data) =>
 			clearTimeout @_calls[cid].timeout
 			delete @_calls[cid]
+			data = data[0] if data and queries.length is 1
 			done.apply done, arguments
 
 		@_calls[cid].timeout = setTimeout () =>

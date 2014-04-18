@@ -1,0 +1,4 @@
+#!/usr/bin/env coffee
+
+
+require(__dirname + '/../repl.coffee')

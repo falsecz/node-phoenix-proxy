@@ -5,12 +5,16 @@
   "main": "index.coffee",
   "author": "bender@false.cz",
   "license": "ISC",
+  "bin": {
+    "gummi": "./bin/phoenix-proxy"
+  },
   "dependencies": {
     "protobufjs": "~2.0.5",
     "reconnect-net": "0.0.0",
     "cli-table": "~0.3.0",
     "moment": "~2.5.1",
-    "bytebuffer": "~2.3.1"
+    "bytebuffer": "~2.3.1",
+    "colors": "~0.6.2"
   },
   "devDependencies": {
     "async": "^0.7.0"

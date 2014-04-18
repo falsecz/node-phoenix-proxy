@@ -1,17 +1,17 @@
 node-phoenix-proxy
 ==================
 
-## Create connection:
+# Create connection:
 ```cs
-pp = require 'node-phoenix-proxy'
-phoenix = pp 'phoenix://10.11.1.101:9898'
+pp = require "node-phoenix-proxy"
+phoenix = pp "phoenix://10.11.1.101:9898"
 
-phoenix.on 'error', (err) ->
+phoenix.on "error", (err) ->
 	console.log err.message
 ```
 
 
-## Create table:
+# Create table:
 ```cs
 query = """
 	CREATE TABLE phoenix_type_test(
@@ -37,7 +37,7 @@ phoenix.update query, (err, result) ->
 ```
 
 
-## Insert new row:
+# Insert new row:
 ```cs
 query = """
 	upsert into phoenix_type_test (c1, c2, c3, c4, c5, c6, c7, c8, c10, c11, c12, c13, c14, c15, c16) values
@@ -45,8 +45,8 @@ query = """
 
 params = [
 	integer: 1
-	varchar: 'foo'
-	binary: new Buffer 'bar'
+	varchar: "foo"
+	binary: new Buffer "bar"
 	double: 1.1
 	float: 1.1
 	bigint: 1
@@ -57,8 +57,8 @@ params = [
 	smallint: 1
 	decimal: 1.1
 	time: new Date
-	char: 'foo'
-	varbinary: new Buffer 'bar'
+	char: "foo"
+	varbinary: new Buffer "bar"
 ]
 """
 phoenix.update query, params, (err, rows) ->
@@ -66,24 +66,24 @@ phoenix.update query, params, (err, rows) ->
 ```
 
 
-## Select data:
+# Select data:
 ```cs
 phoenix.queryOne "select * from phoenix_type_test where c1 = ?", [integer: 1], () ->
 	console.log arguments
 ```
 
 
-## Bulk request:
+# Bulk request:
 ```cs
 bulk = phoenix.bulk()
 bulk.query "select * from phoenix_type_test where c1 = ?", [integer: 1]
-bulk.query "select c1, c2 from phoenix_type_test where c2 = ?", [varchar: 'foo']
+bulk.query "select c1, c2 from phoenix_type_test where c2 = ?", [varchar: "foo"]
 bulk.query "select c1, c7 from phoenix_type_test where c7 = ?", [boolean: yes]
 bulk.execute (err, rows) ->
 	console.log arguments
 ```
 
-## Known problems:
-	* Char doesn't behave like binary does (binary adds x20 to the full length, char doesn't and behavea mores like varchar). So be careful with your where condition on those two types.
+# Known problems:
+	- Char doesn't behave like binary does (binary adds x20 to the full length, char doesn't and behavea mores like varchar). So be careful with your where condition on those two types.
 
 

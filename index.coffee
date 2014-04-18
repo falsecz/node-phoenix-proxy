@@ -1,6 +1,6 @@
 reconnect = require 'reconnect-net'
 {EventEmitter} = require 'events'
-ByteBuffer = require 'protobufjs/node_modules/bytebuffer'
+ByteBuffer = require 'bytebuffer'
 dataConvert = require './lib/data-convert'
 Bulk = require './lib/bulk'
 protocol = require './lib/protocol'

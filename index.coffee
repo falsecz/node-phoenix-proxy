@@ -140,11 +140,17 @@ class Proxy extends EventEmitter
 		return console.log "Call " + o.call_id unless call
 		return call.callback o.exception if o.exception
 
+		err = null
 		decodeMapping = (index, value, mapping) ->
 			b = value.toBuffer()
 			t = mapping[index].type
 			return null unless b.length
-			return dataConvert[t].decode b if dataConvert[t]
+
+			unless dataConvert[t]
+				err = "Invalid type #{t}"
+				return null
+
+			return dataConvert[t].decode b
 			value
 
 
@@ -159,7 +165,7 @@ class Proxy extends EventEmitter
 				r
 			rows
 
-		call.callback null, results
+		call.callback err, results
 
 
 	_baseQuery: (queries, opts, done) =>
@@ -176,6 +182,7 @@ class Proxy extends EventEmitter
 			if query.params.length
 				pbParams = query.params.map (param) ->
 					t = Object.keys(param)[0].toUpperCase()
+					throw new Error "Invalid type #{t}" unless dataConvert[t]
 
 					type: DataType[t]
 					bytes: dataConvert[t].encode param[Object.keys(param)[0]]

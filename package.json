@@ -1,12 +1,12 @@
 {
   "name": "phoenix-proxy",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Phoenix hbase proxy server client",
   "main": "index.coffee",
   "author": "bender@false.cz",
   "license": "ISC",
   "bin": {
-    "gummi": "./bin/phoenix-proxy"
+    "phoenix-proxy": "./bin/phoenix-proxy"
   },
   "dependencies": {
     "protobufjs": "~2.0.5",

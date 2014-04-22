@@ -200,7 +200,6 @@ class Proxy extends EventEmitter
 		@_calls[cid].callback = (err, data) =>
 			clearTimeout @_calls[cid].timeout
 			delete @_calls[cid]
-			data = data[0] if data and queries.length is 1
 			done.apply done, arguments
 
 		@_calls[cid].timeout = setTimeout () =>

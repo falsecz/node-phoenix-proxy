@@ -24,10 +24,7 @@ module.exports = class Bulk
 		@proxy._baseQuery @bulk, opts, cb
 
 
-	_addQuery: (type, q, params, opts) ->
-		params ?= []
-		opts ?= {}
-
+	_addQuery: (type, q, params=[], opts={}) ->
 		@bulk.push
 			type: type
 			sql: q

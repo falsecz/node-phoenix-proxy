@@ -69,42 +69,34 @@ class Proxy extends EventEmitter
 		new Bulk @
 
 
+	_completeArgs = (params, opts, done) ->
+		if typeof params is 'function'
+			done = params
+			opts = {}
+			params = []
+		else if typeof opts is 'function'
+			done = opts
+			opts = {}
+		{params, opts, done}
+
 	query: (q, params, opts, done) =>
-		@_createQuery RequestType.QUERY, q, params, opts, done
+		{params, opts, done} = _completeArgs params, opts, done
+		b = @bulk()
+		b.query q, params, opts
+		b.execute (err, results) ->
+			done err, results?[0]
 
 	queryOne: (q, params, opts, done) =>
-		if typeof params is 'function'
-			done = params
-			opts = {}
-			params = []
-		else if typeof opts is 'function'
-			done = opts
-			opts = {}
-
-
-		@_createQuery RequestType.QUERY, q, params, opts, (err, rows) ->
-			done? err, rows?[0]
+		{params, opts, done} = _completeArgs params, opts, done
+		@query q, params, opts, (err, rows) ->
+			done err, rows?[0]
 
 	update: (q, params, opts, done) =>
-		@_createQuery RequestType.UPDATE, q, params, opts, done
-
-
-	_createQuery: (type, q, params, opts, done) =>
-		if typeof params is 'function'
-			done = params
-			opts = {}
-			params = []
-		else if typeof opts is 'function'
-			done = opts
-			opts = {}
-
-		query = [
-			sql: q
-			type: type
-			params: params
-		]
-		@_baseQuery query, opts, done
-
+		{params, opts, done} = _completeArgs params, opts, done
+		b = @bulk()
+		b.update q, params, opts
+		b.execute (err, results) ->
+			done err, results?[0]
 
 	_getConnection: (done) =>
 		if @_rc.connected
@@ -200,6 +192,7 @@ class Proxy extends EventEmitter
 		@_calls[cid].callback = (err, data) =>
 			clearTimeout @_calls[cid].timeout
 			delete @_calls[cid]
+			# data = data[0] if data and queries.length is 1
 			done.apply done, arguments
 
 		@_calls[cid].timeout = setTimeout () =>

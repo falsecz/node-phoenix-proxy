@@ -44,21 +44,21 @@ query = """
 		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 
 params = [
-	integer: 1
-	varchar: "foo"
-	binary: new Buffer "bar"
-	double: 1.1
-	float: 1.1
-	bigint: 1
-	boolean: yes
-	timestamp: new Date
-	date: new Date
-	tinyint: 1
-	smallint: 1
-	decimal: 1.1
-	time: new Date
-	char: "foo"
-	varbinary: new Buffer "bar"
+	{integer: 1}
+	{varchar: "foo"}
+	{binary: new Buffer "bar"}
+	{double: 1.1}
+	{float: 1.1}
+	{bigint: 1}
+	{boolean: yes}
+	{timestamp: new Date}
+	{date: new Date}
+	{tinyint: 1}
+	{smallint: 1}
+	{decimal: 1.1}
+	{time: new Date}
+	{char: "foo"}
+	{varbinary: new Buffer "bar"}
 ]
 """
 phoenix.update query, params, (err, rows) ->

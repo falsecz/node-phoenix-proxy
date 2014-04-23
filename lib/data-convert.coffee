@@ -89,7 +89,7 @@ dataConvert =
 			low = b.readInt32BE 0
 			x = ByteBuffer.Long.fromBits high, low, yes
 
-			moment.utc(parseInt x).format('YYYY-MM-DD')
+			moment.utc(parseInt x).toDate()
 
 
 	TINYINT:
@@ -130,7 +130,7 @@ dataConvert =
 			low = b.readInt32BE 0
 			x = ByteBuffer.Long.fromBits high, low, yes
 
-			moment.utc(parseInt x).format('HH:mm:ss')
+			moment.utc(parseInt x).toDate()
 
 
 	CHAR:

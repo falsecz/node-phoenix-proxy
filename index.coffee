@@ -136,7 +136,7 @@ class Proxy extends EventEmitter
 		decodeMapping = (index, value, mapping) ->
 			b = value.toBuffer()
 			t = mapping[index].type
-			return null unless b.length
+			return null unless b?.length
 
 			unless dataConvert[t]
 				err = "Invalid type #{t}"
@@ -176,8 +176,11 @@ class Proxy extends EventEmitter
 					t = Object.keys(param)[0].toUpperCase()
 					throw new Error "Invalid type #{t}" unless dataConvert[t]
 
+					bytes = new Buffer 0
+					bytes = dataConvert[t].encode param[Object.keys(param)[0]] if param[Object.keys(param)[0]]?
+
 					type: DataType[t]
-					bytes: dataConvert[t].encode param[Object.keys(param)[0]]
+					bytes: bytes
 
 			req.queries.push
 				sql: query.sql

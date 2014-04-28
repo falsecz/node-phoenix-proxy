@@ -32,8 +32,7 @@ dataConvert =
 			b.writeDouble v
 			b.toBuffer()
 		decode: (b) ->
-			x = ByteBuffer.wrap(b).readDouble 0
-			x.toString()
+			ByteBuffer.wrap(b).readDouble 0
 
 
 	FLOAT:
@@ -42,8 +41,7 @@ dataConvert =
 			b.writeFloat v
 			b.toBuffer()
 		decode: (b) ->
-			x = ByteBuffer.wrap(b).readFloat 0
-			x.toString()
+			ByteBuffer.wrap(b).readFloat 0
 
 
 	BIGINT:
@@ -116,8 +114,7 @@ dataConvert =
 			b.writeDouble v
 			b.toBuffer()
 		decode: (b) ->
-			x = ByteBuffer.wrap(b).readDouble 0
-			x.toString()
+			ByteBuffer.wrap(b).readDouble 0
 
 
 	TIME:

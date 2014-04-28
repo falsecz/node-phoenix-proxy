@@ -32,6 +32,7 @@ query = """
 		c16 VARBINARY,
 	CONSTRAINT PK PRIMARY KEY (c1))
 """
+
 phoenix.update query, (err, result) ->
 	console.log arguments
 ```
@@ -42,6 +43,7 @@ phoenix.update query, (err, result) ->
 query = """
 	upsert into phoenix_type_test (c1, c2, c3, c4, c5, c6, c7, c8, c10, c11, c12, c13, c14, c15, c16) values
 		(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+"""
 
 params = [
 	{integer: 1}
@@ -60,7 +62,7 @@ params = [
 	{char: "foo"}
 	{varbinary: new Buffer "bar"}
 ]
-"""
+
 phoenix.update query, params, (err, rows) ->
 	console.log arguments
 ```
@@ -84,6 +86,6 @@ bulk.execute (err, rows) ->
 ```
 
 # Known problems:
-	- Char doesn't behave like binary does (binary adds x20 to the full length, char doesn't and behavea mores like varchar). So be careful with your where condition on those two types.
+  * Char doesn't behave like binary does (binary adds x20 to the full length, char doesn't and behaves mores like varchar). So be careful with your where condition on those two types.
 
 

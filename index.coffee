@@ -44,12 +44,9 @@ class Proxy extends EventEmitter
 		@_rc.on 'disconnect', (err) =>
 			if err
 				err = new Error "Disconnected #{host}:#{port} #{err}"
-				return @.emit 'error', err
-
-			console.log 'Disconnected'
+				@.emit 'error', err
 
 			call.callback new Error "Connection closed" for id, call of @_calls
-
 			@_calls = {}
 			@_callId = 1
 

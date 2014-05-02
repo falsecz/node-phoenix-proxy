@@ -1,13 +1,15 @@
 pp = require './'
 #phoenix = pp 'phoenix://app7.us-w2.aws.ccl:5216'
 #phoenix = pp 'phoenix://10.11.1.132:8989'
-phoenix = pp 'phoenix://10.11.1.101:9898'
+#phoenix = pp 'phoenix://10.11.1.101:9898'
+phoenix = pp 'phoenix://phoenix-proxy.us-w2.aws.ccl:5216'
 async = require 'async'
 phoenix.on 'error', (err) ->
 	console.log err.message
 
-phoenix.query "select c1, c15 from phoenix_type_test where c1 = ?", [integer: 1], () ->
+phoenix.query "select * from gplus_posts_v6 limit 1", () ->
 	console.log arguments
+	process.exit 0
 
 return
 

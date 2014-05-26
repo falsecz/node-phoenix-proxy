@@ -46,7 +46,10 @@ class Proxy extends EventEmitter
 				err = new Error "Disconnected #{host}:#{port} #{err}"
 				@.emit 'error', err
 
-			call.callback new Error "Connection closed" for id, call of @_calls
+			console.log "#{new Date} - Disconnected. lastCall: #{@lastCall}"
+			for id, call of @_calls
+				console.log "#{new Date} - Disconnected. callId: #{id}"
+				call.callback new Error "Connection closed"
 			@_calls = {}
 			@_callId = 1
 
@@ -76,6 +79,7 @@ class Proxy extends EventEmitter
 			opts = {}
 		{params, opts, done}
 
+
 	query: (q, params, opts, done) =>
 		{params, opts, done} = _completeArgs params, opts, done
 		b = @bulk()
@@ -83,10 +87,12 @@ class Proxy extends EventEmitter
 		b.execute (err, results) ->
 			done err, results?[0]
 
+
 	queryOne: (q, params, opts, done) =>
 		{params, opts, done} = _completeArgs params, opts, done
 		@query q, params, opts, (err, rows) ->
 			done err, rows?[0]
+
 
 	update: (q, params, opts, done) =>
 		{params, opts, done} = _completeArgs params, opts, done
@@ -94,6 +100,7 @@ class Proxy extends EventEmitter
 		b.update q, params, opts
 		b.execute (err, results) ->
 			done err, results?[0]
+
 
 	_getConnection: (done) =>
 		if @_rc.connected
@@ -190,6 +197,7 @@ class Proxy extends EventEmitter
 		@_calls[cid] = {}
 
 		@_calls[cid].callback = (err, data) =>
+			@lastCall = new Date
 			clearTimeout @_calls[cid].timeout
 			delete @_calls[cid]
 			# data = data[0] if data and queries.length is 1
